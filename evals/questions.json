@@ -1,0 +1,7 @@
+[
+  {
+    "question": "List all customers",
+    "gold_sql": "SELECT * FROM customer;",
+    "category": "simple"
+  }
+]
