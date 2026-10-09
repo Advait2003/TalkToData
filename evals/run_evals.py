@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 
 # Load .env variables so GOOGLE_API_KEY is detected when running locally
 from dotenv import load_dotenv
@@ -10,6 +11,19 @@ load_dotenv()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.graph.agent import graph
+
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
+from google.api_core.exceptions import ResourceExhausted
+
+# Automatically retry up to 5 times with exponential backoff if a 429 error occurs
+@retry(
+    retry=retry_if_exception_type((ResourceExhausted, Exception)),
+    wait=wait_exponential(multiplier=1, min=2, max=60),
+    stop=stop_after_attempt(5)
+)
+def invoke_graph_with_retry(graph_obj, initial_state):
+    return graph_obj.invoke(initial_state)
+
 def run_evaluation():
     eval_file_path = os.path.join(os.path.dirname(__file__), "test_questions.json")
     
@@ -43,7 +57,8 @@ def run_evaluation():
         }
 
         try:
-            final_state = graph.invoke(initial_state)
+            # Use the retry-backed function instead of direct graph.invoke
+            final_state = invoke_graph_with_retry(graph, initial_state)
             error = final_state.get("error")
             refused = final_state.get("refused", False)
             result = final_state.get("result", [])
@@ -79,6 +94,9 @@ def run_evaluation():
 
         except Exception as e:
             print(f"❌ [Test {test_id}] ERROR: '{question}' raised exception: {str(e)}")
+
+        # Pause briefly between requests to respect API rate limits (avoids 429 errors)
+        time.sleep(1.5)
 
     print("-" * 60)
     accuracy = (passed_tests / total_tests) * 100
