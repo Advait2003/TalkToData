@@ -14,7 +14,7 @@ class AskResponse(BaseModel):
     answer: str
     sql: Optional[str] = None
     context: Optional[str] = None
-    result: Optional[List[Any]] = None  # <--- Added result field
+    result: Optional[List[Any]] = None  
     refused: bool = False
 
 @app.post("/ask", response_model=AskResponse)

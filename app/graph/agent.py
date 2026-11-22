@@ -1,5 +1,7 @@
 from typing import TypedDict, List, Optional, Any
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import psycopg2
 from langgraph.graph import StateGraph, END
 from app.guardrails import validate_and_sanitize_sql
@@ -22,13 +24,14 @@ class State(TypedDict):
     refused: bool
 
 def get_db_connection():
-    # Make sure port is 5433 to match docker-compose.yml
-    db_url = os.getenv("DATABASE_URL", "postgresql://postgres:password@127.0.0.1:5433/chinook")
+    db_url = os.getenv("DATABASE_URL")
+    if not db_url:
+        raise ValueError("DATABASE_URL environment variable is not set. Please define it in your .env file.")
     return psycopg2.connect(db_url)
 
 def retrieve_schema(state: State) -> State:
     try:
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+        embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", output_dimensionality=768)
         vectorstore = Chroma(persist_directory="./chroma_db", embedding_function=embeddings)
         docs = vectorstore.similarity_search(state["question"], k=2)
         schema_lines = [doc.page_content for doc in docs]

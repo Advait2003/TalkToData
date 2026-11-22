@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from langchain_core.documents import Document
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
@@ -7,7 +9,7 @@ CHROMA_PATH = "./chroma_db"
 
 def get_vector_store():
     """Initializes and returns the Chroma vector store with Google embeddings."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", output_dimensionality=768)
     return Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings)
 
 def init_schema_db():
@@ -30,7 +32,7 @@ def init_schema_db():
         )
     ]
     
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", output_dimensionality=768)
     vectorstore = Chroma.from_documents(
         documents=tables_metadata,
         embedding=embeddings,
